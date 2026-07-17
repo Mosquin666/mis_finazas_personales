@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Mi Contador" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>Mi Contador</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f0; color: #1a1a1a; min-height: 100vh; }
+    .header { background: #fff; border-bottom: 0.5px solid #e0ddd4; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+    .header h1 { font-size: 17px; font-weight: 600; }
+    .mes-label { font-size: 12px; color: #888; }
+    .tabs { display: flex; background: #fff; border-bottom: 0.5px solid #e0ddd4; position: sticky; top: 53px; z-index: 9; }
+    .tab { flex: 1; padding: 11px 4px; font-size: 13px; color: #888; cursor: pointer; text-align: center; border-bottom: 2px solid transparent; }
+    .tab.active { color: #1a1a1a; font-weight: 600; border-bottom: 2px solid #1a1a1a; }
+    .content { padding: 14px; max-width: 480px; margin: 0 auto; }
+    .section { display: none; }
+    .section.active { display: block; }
+
+    .saldo-card { background: #1a1a1a; color: #fff; border-radius: 16px; padding: 18px; margin-bottom: 12px; }
+    .saldo-label { font-size: 12px; color: #aaa; margin-bottom: 4px; }
+    .saldo-valor { font-size: 36px; font-weight: 700; letter-spacing: -1px; margin-bottom: 14px; }
+    .saldo-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .saldo-mini { flex: 1; min-width: 60px; }
+    .saldo-mini-label { font-size: 11px; color: #aaa; margin-bottom: 2px; }
+    .saldo-mini-valor { font-size: 14px; font-weight: 600; }
+    .c-ing { color: #7FCE5A; }
+    .c-gas { color: #F07070; }
+    .c-pat { color: #7EB8F7; }
+
+    .cuentas-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 14px; }
+    .cuenta-card { background: #fff; border: 0.5px solid #e0ddd4; border-radius: 10px; padding: 10px; }
+    .cuenta-card-label { font-size: 11px; color: #888; margin-bottom: 4px; }
+    .cuenta-card-valor { font-size: 15px; font-weight: 700; }
+
+    .acciones { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+    .btn-accion { padding: 12px 6px; border: none; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; }
+    .btn-ingreso    { background: #EAF3DE; color: #3B6D11; }
+    .btn-gasto      { background: #FCEBEB; color: #A32D2D; }
+    .btn-patrimonio { background: #EAF0FB; color: #1A4DB5; }
+    .btn-ingreso:active    { background: #d4ebbf; }
+    .btn-gasto:active      { background: #f5d0d0; }
+    .btn-patrimonio:active { background: #d0ddf5; }
+
+    .cats-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 8px; margin-bottom: 16px; }
+    .cat-card { background: #fff; border: 0.5px solid #e0ddd4; border-radius: 10px; padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; }
+    .cat-left { display: flex; align-items: center; gap: 8px; }
+    .cat-nombre { font-size: 13px; font-weight: 500; }
+    .cat-valor { font-size: 13px; font-weight: 600; color: #A32D2D; }
+
+    .mov-card { background: #fff; border: 0.5px solid #e0ddd4; border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; }
+    .mov-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+    .mov-left { flex: 1; min-width: 0; }
+    .mov-desc { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .mov-meta { font-size: 12px; color: #888; margin-top: 2px; }
+    .mov-nota { font-size: 11px; color: #aaa; margin-top: 2px; font-style: italic; }
+    .mov-monto { font-size: 15px; font-weight: 700; white-space: nowrap; }
+    .m-ing { color: #3B6D11; }
+    .m-gas { color: #A32D2D; }
+    .m-pat { color: #1A4DB5; }
+    .mov-actions { display: flex; align-items: center; gap: 4px; margin-top: 8px; padding-top: 8px; border-top: 0.5px solid #f0f0ea; }
+    .btn-edit { flex: 1; padding: 6px; border: 0.5px solid #ccc; background: #f5f5f0; color: #555; border-radius: 6px; font-size: 12px; cursor: pointer; text-align: center; }
+    .btn-edit:active { background: #e8e8e0; }
+    .btn-del2 { flex: 1; padding: 6px; border: 0.5px solid #F7C1C1; background: #FCEBEB; color: #A32D2D; border-radius: 6px; font-size: 12px; cursor: pointer; text-align: center; }
+    .btn-del2:active { opacity: 0.7; }
+    .tag { font-size: 11px; border-radius: 10px; padding: 2px 8px; white-space: nowrap; }
+    .tag-pat { background: #EAF0FB; color: #1A4DB5; }
+
+    .panel { background: #fff; border: 0.5px solid #e0ddd4; border-radius: 14px; padding: 16px; margin-bottom: 12px; display: none; }
+    .panel-pat { border-color: #b8ccf0; }
+    .panel-edit { border-color: #f0c060; }
+    .panel-title { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
+    .panel label { font-size: 12px; color: #888; display: block; margin-bottom: 4px; margin-top: 10px; }
+    .panel label:first-of-type { margin-top: 0; }
+    .panel input, .panel select, .panel textarea { width: 100%; padding: 10px 12px; border: 0.5px solid #ccc; border-radius: 8px; font-size: 15px; background: #fff; color: #1a1a1a; font-family: inherit; }
+    .panel input:focus, .panel select:focus, .panel textarea:focus { outline: none; border-color: #888; }
+    .panel textarea { height: 56px; resize: none; }
+    .panel-hint { font-size: 12px; color: #888; line-height: 1.5; margin-bottom: 10px; background: #f5f5f0; border-radius: 8px; padding: 8px 10px; }
+    .btn-row { display: flex; gap: 8px; margin-top: 14px; }
+    .btn-save { flex: 1; padding: 12px; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; }
+    .btn-save.ingreso    { background: #3B6D11; color: #fff; }
+    .btn-save.gasto      { background: #A32D2D; color: #fff; }
+    .btn-save.patrimonio { background: #1A4DB5; color: #fff; }
+    .btn-save.editar     { background: #856404; color: #fff; }
+    .btn-save:active { opacity: 0.85; }
+    .btn-cancel-f { padding: 12px 16px; border: 0.5px solid #ccc; background: #f5f5f0; color: #888; border-radius: 8px; font-size: 14px; cursor: pointer; }
+
+    .reporte-card { background: #fff; border: 0.5px solid #e0ddd4; border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; }
+    .reporte-titulo { font-size: 12px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; }
+    .reporte-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 0.5px solid #f0f0ea; font-size: 14px; }
+    .reporte-row:last-child { border-bottom: none; }
+    .reporte-sub { display: flex; justify-content: space-between; padding: 4px 0 4px 20px; font-size: 12px; color: #888; border-bottom: 0.5px solid #f5f5f0; }
+    .reporte-sub:last-child { border-bottom: none; }
+    .reporte-barra-wrap { background: #f5f5f0; border-radius: 4px; height: 6px; margin-top: 4px; overflow: hidden; }
+    .reporte-barra { height: 6px; border-radius: 4px; background: #1a1a1a; }
+    .recomendacion { background: #EAF3DE; border-radius: 10px; padding: 10px 14px; margin-bottom: 8px; font-size: 13px; color: #3B6D11; line-height: 1.5; }
+
+    .section-label { font-size: 11px; font-weight: 600; color: #aaa; margin: 14px 0 8px; text-transform: uppercase; letter-spacing: 0.06em; }
+    .badge-movs { font-size: 12px; background: #f0f0ea; color: #888; border-radius: 20px; padding: 3px 10px; }
+    .empty { text-align: center; color: #aaa; font-size: 14px; padding: 28px 0; }
+
+
+    .modal-overlay { display:none; position:fixed; top:0;left:0;right:0;bottom:0; background:rgba(0,0,0,0.4); z-index:50; overflow-y:auto; padding:20px 14px; }
+    .modal-overlay.show { display:block; }
+    .modal-box { background:#fff; border-radius:16px; padding:16px; max-width:480px; margin:0 auto; }
+    .modal-box label { font-size:12px; color:#888; display:block; margin-bottom:4px; margin-top:10px; }
+    .modal-box label:first-of-type { margin-top:0; }
+    .modal-box input, .modal-box select, .modal-box textarea { width:100%; padding:10px 12px; border:0.5px solid #ccc; border-radius:8px; font-size:15px; background:#fff; color:#1a1a1a; font-family:inherit; box-sizing:border-box; }
+    .modal-box input:focus, .modal-box select:focus, .modal-box textarea:focus { outline:none; border-color:#888; }
+    .modal-box textarea { height:56px; resize:none; }
+    @media (prefers-color-scheme: dark) {
+      .modal-box { background:#2a2a2a; }
+      .modal-box input, .modal-box select, .modal-box textarea { background:#2a2a2a; border-color:#3a3a3a; color:#f0ede4; }
+    }
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1a1a1a; color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 13px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 99; white-space: nowrap; max-width: 90vw; }
+    .toast.show { opacity: 1; }
+
+    @media (prefers-color-scheme: dark) {
+      body { background: #1a1a1a; color: #f0ede4; }
+      .header, .tabs { background: #2a2a2a; border-color: #3a3a3a; }
+      .saldo-card { background: #111; }
+      .cat-card, .mov-card, .panel, .reporte-card, .cuenta-card { background: #2a2a2a; border-color: #3a3a3a; }
+      .panel input, .panel select, .panel textarea { background: #2a2a2a; border-color: #3a3a3a; color: #f0ede4; }
+      .panel-hint { background: #222; }
+      .tab { color: #888; }
+      .tab.active { color: #f0ede4; border-bottom-color: #f0ede4; }
+      .btn-cancel-f, .btn-edit { background: #2a2a2a; border-color: #3a3a3a; color: #aaa; }
+      .reporte-row, .reporte-sub { border-color: #3a3a3a; }
+      .reporte-barra-wrap { background: #333; }
+      .reporte-barra { background: #f0ede4; }
+      .recomendacion { background: #1a2d10; color: #7FCE5A; }
+      .badge-movs { background: #333; color: #888; }
+      .mov-actions { border-color: #3a3a3a; }
+      .header, .tabs { border-color: #3a3a3a; }
+      .toast { background: #f0ede4; color: #1a1a1a; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>💼 Mi Contador</h1>
+  <span class="mes-label" id="mes-label"></span>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('inicio')">Inicio</div>
+  <div class="tab" onclick="showTab('movimientos')">Movimientos</div>
+  <div class="tab" onclick="showTab('reporte')">Reporte</div>
+</div>
+
+<div class="content">
+
+  <!-- INICIO -->
+  <div id="sec-inicio" class="section active">
+    <div class="saldo-card">
+      <div class="saldo-label">💵 Saldo total</div>
+      <div class="saldo-valor" id="saldo-valor">$0.00</div>
+      <div class="saldo-row">
+        <div class="saldo-mini"><div class="saldo-mini-label">📈 Ingresos</div><div class="saldo-mini-valor c-ing" id="total-ingresos">$0.00</div></div>
+        <div class="saldo-mini"><div class="saldo-mini-label">📉 Gastos</div><div class="saldo-mini-valor c-gas" id="total-gastos">$0.00</div></div>
+        <div class="saldo-mini"><div class="saldo-mini-label">🏛 Inicial</div><div class="saldo-mini-valor c-pat" id="total-pat">$0.00</div></div>
+        <div class="saldo-mini"><div class="saldo-mini-label">🔢 Movs</div><div class="saldo-mini-valor" id="total-movs">0</div></div>
+      </div>
+    </div>
+
+    <div class="cuentas-grid" id="cuentas-grid"></div>
+
+    <div class="acciones">
+      <button class="btn-accion btn-ingreso"    onclick="abrirPanel('ingreso')">＋ Ingreso</button>
+      <button class="btn-accion btn-gasto"      onclick="abrirPanel('gasto')">－ Gasto</button>
+      <button class="btn-accion btn-patrimonio" onclick="abrirPanel('patrimonio')">🏛 Inicial</button>
+    </div>
+
+    <!-- PANEL INGRESO / GASTO -->
+    <div id="panel-movimiento" class="panel">
+      <div class="panel-title" id="panel-titulo">Nuevo ingreso</div>
+      <label>Descripción</label>
+      <input type="text" id="inp-desc" placeholder="Ej. Sueldo, gasolina..." />
+      <label>Monto ($)</label>
+      <input type="number" id="inp-monto" placeholder="0.00" min="0" step="0.01" inputmode="decimal" />
+      <label>Categoría</label>
+      <select id="inp-cat"></select>
+      <label>Cuenta que <span id="lbl-afecta">recibe</span> el movimiento</label>
+      <select id="inp-cuenta">
+        <option value="disponible">💵 Disponible</option>
+        <option value="bancos">🏦 Bancos</option>
+        <option value="inversiones">🪙 Inversiones</option>
+      </select>
+      <label>Subcuenta (opcional)</label>
+      <input type="text" id="inp-subcat" placeholder='Ej. "Nu", "BBVA", "CETES"' />
+      <label>Nota (opcional)</label>
+      <textarea id="inp-nota" placeholder="Cualquier dato útil..."></textarea>
+      <div class="btn-row">
+        <button class="btn-save" id="btn-save-mov" onclick="guardarMovimiento()">Guardar</button>
+        <button class="btn-cancel-f" onclick="cerrarPaneles()">Cancelar</button>
+      </div>
+    </div>
+
+    <!-- PANEL SALDO INICIAL -->
+    <div id="panel-patrimonio" class="panel panel-pat">
+      <div class="panel-title" style="color:#1A4DB5;">🏛 Saldo inicial patrimonial</div>
+      <div class="panel-hint">No cuenta como ingreso — es lo que ya tenías antes de empezar a registrar.</div>
+      <label>Concepto</label>
+      <input type="text" id="inp-pat-desc" placeholder='Ej. "Nu", "BBVA", "CETES"' />
+      <label>Cuenta</label>
+      <select id="inp-pat-tipo">
+        <option value="disponible">💵 Disponible</option>
+        <option value="bancos">🏦 Bancos</option>
+        <option value="inversiones">🪙 Inversiones</option>
+      </select>
+      <label>Subcuenta (opcional)</label>
+      <input type="text" id="inp-pat-subcat" placeholder='Ej. "Dólares", "Pagaré"' />
+      <label>Monto ($)</label>
+      <input type="number" id="inp-pat-monto" placeholder="0.00" min="0" step="0.01" inputmode="decimal" />
+      <div class="btn-row">
+        <button class="btn-save patrimonio" onclick="guardarPatrimonio()">Guardar saldo inicial</button>
+        <button class="btn-cancel-f" onclick="cerrarPaneles()">Cancelar</button>
+      </div>
+    </div>
+
+    <div class="section-label">Gastos por categoría este mes</div>
+    <div class="cats-grid" id="cats-grid"></div>
+  </div>
+
+  <!-- MOVIMIENTOS -->
+  <div id="sec-movimientos" class="section">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <span class="section-label" style="margin:0;">Historial</span>
+      <span class="badge-movs" id="badge-movs">0 movimientos</span>
+    </div>
+    <div id="lista-movimientos"><p class="empty">Sin movimientos este mes</p></div>
+  </div>
+
+  <!-- REPORTE -->
+  <div id="sec-reporte" class="section">
+    <div id="reporte-content"></div>
+  </div>
+
+</div>
+
+<!-- MODAL EDITAR MOVIMIENTO -->
+<div class="modal-overlay" id="modal-editar">
+  <div class="modal-box">
+    <div class="panel-title" style="color:#856404;margin-bottom:12px;">✏️ Editar movimiento</div>
+    <input type="hidden" id="edit-id" />
+    <label>Descripción</label>
+    <input type="text" id="edit-desc" />
+    <label>Monto ($)</label>
+    <input type="number" id="edit-monto" min="0" step="0.01" inputmode="decimal" />
+    <label>Categoría</label>
+    <select id="edit-cat"></select>
+    <label>Cuenta</label>
+    <select id="edit-cuenta">
+      <option value="disponible">💵 Disponible</option>
+      <option value="bancos">🏦 Bancos</option>
+      <option value="inversiones">🪙 Inversiones</option>
+    </select>
+    <label>Subcuenta (opcional)</label>
+    <input type="text" id="edit-subcat" />
+    <label>Nota (opcional)</label>
+    <textarea id="edit-nota"></textarea>
+    <div class="btn-row" style="margin-top:14px;">
+      <button class="btn-save editar" onclick="guardarEdicion()">Guardar cambios</button>
+      <button class="btn-cancel-f" onclick="cerrarModales()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR PATRIMONIO -->
+<div class="modal-overlay" id="modal-editar-pat">
+  <div class="modal-box">
+    <div class="panel-title" style="color:#856404;margin-bottom:12px;">✏️ Editar saldo inicial</div>
+    <input type="hidden" id="edit-pat-id" />
+    <label>Concepto</label>
+    <input type="text" id="edit-pat-desc" />
+    <label>Cuenta</label>
+    <select id="edit-pat-tipo">
+      <option value="disponible">💵 Disponible</option>
+      <option value="bancos">🏦 Bancos</option>
+      <option value="inversiones">🪙 Inversiones</option>
+    </select>
+    <label>Subcuenta (opcional)</label>
+    <input type="text" id="edit-pat-subcat" />
+    <label>Monto ($)</label>
+    <input type="number" id="edit-pat-monto" min="0" step="0.01" inputmode="decimal" />
+    <div class="btn-row" style="margin-top:14px;">
+      <button class="btn-save editar" onclick="guardarEdicionPat()">Guardar cambios</button>
+      <button class="btn-cancel-f" onclick="cerrarModales()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'mi_contador_v3';
+
+const CATEGORIAS_DEFAULT = [
+  { id:'bancos',       emoji:'🏦', nombre:'Bancos' },
+  { id:'transporte',   emoji:'🚌', nombre:'Transporte' },
+  { id:'alimentos',    emoji:'🍔', nombre:'Alimentación' },
+  { id:'rancho',       emoji:'🏠', nombre:'Rancho' },
+  { id:'internet',     emoji:'📺', nombre:'Internet y diversión' },
+  { id:'construccion', emoji:'👷‍♀️', nombre:'Construcción' },
+  { id:'cafe',         emoji:'👨🏽‍🌾', nombre:'Café y plátano' },
+  { id:'deudas',       emoji:'💳', nombre:'Deudas' },
+  { id:'inversiones',  emoji:'🪙', nombre:'Inversiones' },
+  { id:'ahorro',       emoji:'💰', nombre:'Ahorro' },
+  { id:'otros',        emoji:'📦', nombre:'Otros gastos' },
+];
+
+const CUENTAS = {
+  disponible:  { emoji:'💵', nombre:'Disponible' },
+  bancos:      { emoji:'🏦', nombre:'Bancos' },
+  inversiones: { emoji:'🪙', nombre:'Inversiones' },
+};
+
+function cargarDatos() {
+  try { const r = localStorage.getItem(STORAGE_KEY); if (r) return JSON.parse(r); } catch(e) {}
+  return { movimientos:[], categorias:CATEGORIAS_DEFAULT, patrimonios:[] };
+}
+function guardarDatos() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ movimientos, categorias, patrimonios })); } catch(e) {}
+}
+
+const datos = cargarDatos();
+let movimientos = datos.movimientos || [];
+let categorias  = datos.categorias  || CATEGORIAS_DEFAULT;
+let patrimonios = datos.patrimonios || [];
+let tipoActivo  = 'ingreso';
+
+CATEGORIAS_DEFAULT.forEach(cd => { if (!categorias.find(c=>c.id===cd.id)) categorias.push(cd); });
+
+function mesActual() { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
+function movsDelMes() { return movimientos.filter(m=>m.fecha.startsWith(mesActual())); }
+function fechaHora()  { return new Date().toISOString(); }
+function formatFecha(iso) {
+  const d=new Date(iso);
+  return d.toLocaleDateString('es-MX',{day:'numeric',month:'short'})+' '+d.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+}
+function fmt(n) { return '$'+Math.abs(n).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+function saldoPorCuenta(cuenta) {
+  const patC = patrimonios.filter(p=>p.tipo===cuenta).reduce((s,p)=>s+p.monto,0);
+  const ingC = movimientos.filter(m=>m.tipo==='ingreso'&&m.cuenta===cuenta).reduce((s,m)=>s+m.monto,0);
+  const gasC = movimientos.filter(m=>m.tipo==='gasto'&&m.cuenta===cuenta).reduce((s,m)=>s+m.monto,0);
+  return patC+ingC-gasC;
+}
+
+// Saldo por subcuenta dentro de una cuenta
+function saldoPorSubcuenta(cuenta) {
+  const mapa = {};
+  // Patrimonios
+  patrimonios.filter(p=>p.tipo===cuenta).forEach(p=>{
+    const k = p.subcat || p.desc || '(sin subcuenta)';
+    mapa[k] = (mapa[k]||0) + p.monto;
+  });
+  // Movimientos
+  movimientos.filter(m=>m.cuenta===cuenta).forEach(m=>{
+    const k = m.subcat || '(sin subcuenta)';
+    mapa[k] = (mapa[k]||0) + (m.tipo==='ingreso' ? m.monto : -m.monto);
+  });
+  return mapa;
+}
+
+document.getElementById('mes-label').textContent = new Date().toLocaleDateString('es-MX',{month:'long',year:'numeric'});
+
+function showTab(tab) {
+  ['inicio','movimientos','reporte'].forEach(t=>document.getElementById('sec-'+t).classList.toggle('active',t===tab));
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',['inicio','movimientos','reporte'][i]===tab));
+  if (tab==='movimientos') renderMovimientos();
+  if (tab==='reporte')     renderReporte();
+  if (tab==='inicio')      renderInicio();
+}
+
+function cerrarPaneles() {
+  ['panel-movimiento','panel-patrimonio'].forEach(id=>
+    document.getElementById(id).style.display='none');
+  cerrarModales();
+}
+
+function fillCatSelect(selId, valorActual) {
+  const sel = document.getElementById(selId);
+  sel.innerHTML = categorias.map(c=>`<option value="${c.id}">${c.emoji} ${c.nombre}</option>`).join('')
+                + `<option value="__nueva__">➕ Nueva categoría...</option>`;
+  if (valorActual) sel.value = valorActual;
+}
+
+function abrirPanel(tipo) {
+  cerrarPaneles();
+  if (tipo==='patrimonio') {
+    ['inp-pat-desc','inp-pat-monto','inp-pat-subcat'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('panel-patrimonio').style.display='block';
+    document.getElementById('inp-pat-desc').focus();
+    return;
+  }
+  tipoActivo = tipo;
+  const esI = tipo==='ingreso';
+  document.getElementById('panel-titulo').textContent = esI?'＋ Nuevo ingreso':'－ Nuevo gasto';
+  document.getElementById('lbl-afecta').textContent   = esI?'recibe':'cubre';
+  const btn = document.getElementById('btn-save-mov');
+  btn.textContent = esI?'Guardar ingreso':'Guardar gasto';
+  btn.className   = 'btn-save '+(esI?'ingreso':'gasto');
+  fillCatSelect('inp-cat');
+  ['inp-desc','inp-monto','inp-subcat','inp-nota'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('inp-cuenta').value='disponible';
+  document.getElementById('panel-movimiento').style.display='block';
+  document.getElementById('inp-desc').focus();
+}
+
+function cerrarModales() {
+  document.getElementById('modal-editar').classList.remove('show');
+  document.getElementById('modal-editar-pat').classList.remove('show');
+}
+
+function abrirEdicion(id) {
+  const m = movimientos.find(x=>x.id===id);
+  if (!m) return;
+  cerrarPaneles();
+  document.getElementById('edit-id').value     = m.id;
+  document.getElementById('edit-desc').value   = m.desc;
+  document.getElementById('edit-monto').value  = m.monto;
+  document.getElementById('edit-subcat').value = m.subcat||'';
+  document.getElementById('edit-nota').value   = m.nota||'';
+  document.getElementById('edit-cuenta').value = m.cuenta||'disponible';
+  fillCatSelect('edit-cat', m.catId);
+  document.getElementById('modal-editar').classList.add('show');
+  document.getElementById('edit-desc').focus();
+}
+
+function abrirEdicionPat(id) {
+  const p = patrimonios.find(x=>x.id===id);
+  if (!p) return;
+  cerrarPaneles();
+  document.getElementById('edit-pat-id').value    = p.id;
+  document.getElementById('edit-pat-desc').value  = p.desc;
+  document.getElementById('edit-pat-tipo').value  = p.tipo;
+  document.getElementById('edit-pat-subcat').value= p.subcat||'';
+  document.getElementById('edit-pat-monto').value = p.monto;
+  document.getElementById('modal-editar-pat').classList.add('show');
+  document.getElementById('edit-pat-desc').focus();
+}
+
+document.addEventListener('change', function(e) {
+  if ((e.target.id==='inp-cat'||e.target.id==='edit-cat') && e.target.value==='__nueva__') {
+    const nombre = prompt('Nombre de la nueva categoría:');
+    if (nombre && nombre.trim()) {
+      const emoji = prompt('Emoji (opcional):') || '📌';
+      const id = nombre.trim().toLowerCase().replace(/\s+/g,'_');
+      categorias.push({id, emoji:emoji.trim(), nombre:nombre.trim()});
+      guardarDatos();
+      fillCatSelect(e.target.id, id);
+      mostrarToast('Categoría "'+nombre.trim()+'" creada');
+    } else { e.target.value = categorias[0].id; }
+  }
+});
+
+function guardarMovimiento() {
+  const desc   = document.getElementById('inp-desc').value.trim();
+  const monto  = parseFloat(document.getElementById('inp-monto').value);
+  const catId  = document.getElementById('inp-cat').value;
+  const cuenta = document.getElementById('inp-cuenta').value;
+  const subcat = document.getElementById('inp-subcat').value.trim();
+  const nota   = document.getElementById('inp-nota').value.trim();
+  if (!desc)              { mostrarToast('Escribe una descripción'); return; }
+  if (!monto||monto<=0)   { mostrarToast('Ingresa un monto válido'); return; }
+  if (catId==='__nueva__'){ mostrarToast('Selecciona una categoría'); return; }
+  const cat = categorias.find(c=>c.id===catId);
+  const cta = CUENTAS[cuenta];
+  movimientos.push({ id:Date.now().toString(), tipo:tipoActivo, desc, monto, catId, catNombre:cat?.nombre||catId, catEmoji:cat?.emoji||'📌', cuenta, cuentaNombre:cta.nombre, cuentaEmoji:cta.emoji, subcat, nota, fecha:fechaHora() });
+  guardarDatos(); renderInicio();
+  // Limpiar campos pero mantener panel abierto con la misma cuenta y categoría
+  ['inp-desc','inp-monto','inp-subcat','inp-nota'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('inp-desc').focus();
+  mostrarToast((tipoActivo==='ingreso'?'＋ ':'－ ')+fmt(monto)+' → '+cta.emoji+' '+cta.nombre+(subcat?' · '+subcat:''));
+}
+
+function guardarEdicion() {
+  const id     = document.getElementById('edit-id').value;
+  const desc   = document.getElementById('edit-desc').value.trim();
+  const monto  = parseFloat(document.getElementById('edit-monto').value);
+  const catId  = document.getElementById('edit-cat').value;
+  const cuenta = document.getElementById('edit-cuenta').value;
+  const subcat = document.getElementById('edit-subcat').value.trim();
+  const nota   = document.getElementById('edit-nota').value.trim();
+  if (!desc)             { mostrarToast('Escribe una descripción'); return; }
+  if (!monto||monto<=0)  { mostrarToast('Ingresa un monto válido'); return; }
+  const cat = categorias.find(c=>c.id===catId);
+  const cta = CUENTAS[cuenta];
+  const idx = movimientos.findIndex(m=>m.id===id);
+  if (idx===-1) return;
+  movimientos[idx] = { ...movimientos[idx], desc, monto, catId, catNombre:cat?.nombre||catId, catEmoji:cat?.emoji||'📌', cuenta, cuentaNombre:cta.nombre, cuentaEmoji:cta.emoji, subcat, nota };
+  guardarDatos(); cerrarModales(); renderMovimientos(); renderInicio();
+  mostrarToast('Movimiento actualizado');
+}
+
+function guardarPatrimonio() {
+  const desc   = document.getElementById('inp-pat-desc').value.trim();
+  const tipo   = document.getElementById('inp-pat-tipo').value;
+  const subcat = document.getElementById('inp-pat-subcat').value.trim();
+  const monto  = parseFloat(document.getElementById('inp-pat-monto').value);
+  if (!desc)             { mostrarToast('Escribe un concepto'); return; }
+  if (!monto||monto<=0)  { mostrarToast('Ingresa un monto válido'); return; }
+  const cta = CUENTAS[tipo];
+  patrimonios.push({ id:Date.now().toString(), desc, tipo, subcat, monto, emoji:cta.emoji, nombre:cta.nombre, fecha:fechaHora() });
+  guardarDatos(); renderInicio();
+  // Limpiar campos pero mantener panel abierto
+  ['inp-pat-desc','inp-pat-monto','inp-pat-subcat'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('inp-pat-desc').focus();
+  mostrarToast('Saldo inicial: '+cta.emoji+' '+cta.nombre+(subcat?' · '+subcat:''));
+}
+
+function guardarEdicionPat() {
+  const id     = document.getElementById('edit-pat-id').value;
+  const desc   = document.getElementById('edit-pat-desc').value.trim();
+  const tipo   = document.getElementById('edit-pat-tipo').value;
+  const subcat = document.getElementById('edit-pat-subcat').value.trim();
+  const monto  = parseFloat(document.getElementById('edit-pat-monto').value);
+  if (!desc)            { mostrarToast('Escribe un concepto'); return; }
+  if (!monto||monto<=0) { mostrarToast('Ingresa un monto válido'); return; }
+  const cta = CUENTAS[tipo];
+  const idx = patrimonios.findIndex(p=>p.id===id);
+  if (idx===-1) return;
+  patrimonios[idx] = { ...patrimonios[idx], desc, tipo, subcat, monto, emoji:cta.emoji, nombre:cta.nombre };
+  guardarDatos(); cerrarModales(); renderMovimientos(); renderInicio();
+  mostrarToast('Saldo inicial actualizado');
+}
+
+function eliminarPatrimonio(id) {
+  if (!confirm('¿Eliminar este saldo inicial?')) return;
+  patrimonios = patrimonios.filter(p=>p.id!==id);
+  guardarDatos(); renderInicio(); renderMovimientos();
+  mostrarToast('Saldo inicial eliminado');
+}
+function eliminarMovimiento(id) {
+  if (!confirm('¿Eliminar este movimiento?')) return;
+  movimientos = movimientos.filter(m=>m.id!==id);
+  guardarDatos(); renderMovimientos(); renderInicio();
+  mostrarToast('Movimiento eliminado');
+}
+
+function renderInicio() {
+  const movs     = movsDelMes();
+  const ingresos = movs.filter(m=>m.tipo==='ingreso').reduce((s,m)=>s+m.monto,0);
+  const gastos   = movs.filter(m=>m.tipo==='gasto').reduce((s,m)=>s+m.monto,0);
+  const patTotal = patrimonios.reduce((s,p)=>s+p.monto,0);
+  const saldo    = saldoPorCuenta('disponible')+saldoPorCuenta('bancos')+saldoPorCuenta('inversiones');
+
+  document.getElementById('saldo-valor').textContent = (saldo<0?'-':'')+fmt(saldo);
+  document.getElementById('saldo-valor').style.color = saldo<0?'#F07070':'#fff';
+  document.getElementById('total-ingresos').textContent = fmt(ingresos);
+  document.getElementById('total-gastos').textContent   = fmt(gastos);
+  document.getElementById('total-pat').textContent      = fmt(patTotal);
+  document.getElementById('total-movs').textContent     = movs.length;
+
+  const grid = document.getElementById('cuentas-grid');
+  grid.innerHTML = Object.entries(CUENTAS).map(([id,c])=>{
+    const s=saldoPorCuenta(id);
+    return `<div class="cuenta-card">
+      <div class="cuenta-card-label">${c.emoji} ${c.nombre}</div>
+      <div class="cuenta-card-valor" style="color:${s<0?'#A32D2D':'#1A4DB5'};">${s<0?'-':''}${fmt(s)}</div>
+    </div>`;
+  }).join('');
+
+  const porCat = {};
+  movs.filter(m=>m.tipo==='gasto').forEach(m=>{
+    if (!porCat[m.catId]) porCat[m.catId]={total:0,emoji:m.catEmoji,nombre:m.catNombre};
+    porCat[m.catId].total+=m.monto;
+  });
+  const catsConGasto=Object.entries(porCat).sort((a,b)=>b[1].total-a[1].total);
+  const cGrid=document.getElementById('cats-grid');
+  if (!catsConGasto.length){cGrid.innerHTML='<p class="empty" style="grid-column:span 2;padding:14px 0;">Sin gastos este mes</p>';return;}
+  cGrid.innerHTML=catsConGasto.map(([id,c])=>
+    `<div class="cat-card"><div class="cat-left"><span style="font-size:18px;">${c.emoji}</span><span class="cat-nombre">${c.nombre}</span></div><span class="cat-valor">${fmt(c.total)}</span></div>`
+  ).join('');
+}
+
+function renderMovimientos() {
+  const movs=movsDelMes();
+  const todos=[
+    ...patrimonios.map(p=>({...p,_esPat:true})),
+    ...movs
+  ].sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
+
+  document.getElementById('badge-movs').textContent=movs.length+' movimiento'+(movs.length!==1?'s':'');
+  const lista=document.getElementById('lista-movimientos');
+  if (!todos.length){lista.innerHTML='<p class="empty">Sin movimientos este mes</p>';return;}
+
+  lista.innerHTML=todos.map(m=>{
+    if (m._esPat) {
+      return `<div class="mov-card">
+        <div class="mov-top">
+          <div class="mov-left">
+            <div class="mov-desc">${m.emoji} ${m.desc}${m.subcat?' · <span style="color:#888;font-weight:400;">'+m.subcat+'</span>':''}</div>
+            <div class="mov-meta">${m.nombre} · ${formatFecha(m.fecha)}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span class="mov-monto m-pat">${fmt(m.monto)}</span>
+            <span class="tag tag-pat">inicial</span>
+          </div>
+        </div>
+        <div class="mov-actions">
+          <button class="btn-edit" onclick="abrirEdicionPat('${m.id}')">✏️ Editar</button>
+          <button class="btn-del2" onclick="eliminarPatrimonio('${m.id}')">🗑 Eliminar</button>
+        </div>
+      </div>`;
+    }
+    const sub=m.subcat?' · '+m.subcat:'';
+    return `<div class="mov-card">
+      <div class="mov-top">
+        <div class="mov-left">
+          <div class="mov-desc">${m.catEmoji} ${m.desc}</div>
+          <div class="mov-meta">${m.catNombre} · ${m.cuentaEmoji} ${m.cuentaNombre}${sub} · ${formatFecha(m.fecha)}</div>
+          ${m.nota?`<div class="mov-nota">📝 ${m.nota}</div>`:''}
+        </div>
+        <span class="mov-monto ${m.tipo==='ingreso'?'m-ing':'m-gas'}">${m.tipo==='ingreso'?'+':'-'}${fmt(m.monto)}</span>
+      </div>
+      <div class="mov-actions">
+        <button class="btn-edit" onclick="abrirEdicion('${m.id}')">✏️ Editar</button>
+        <button class="btn-del2" onclick="eliminarMovimiento('${m.id}')">🗑 Eliminar</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderReporte() {
+  const movs     = movsDelMes();
+  const ingresos = movs.filter(m=>m.tipo==='ingreso').reduce((s,m)=>s+m.monto,0);
+  const gastos   = movs.filter(m=>m.tipo==='gasto').reduce((s,m)=>s+m.monto,0);
+  const patTotal = patrimonios.reduce((s,p)=>s+p.monto,0);
+  const saldoTotal = saldoPorCuenta('disponible')+saldoPorCuenta('bancos')+saldoPorCuenta('inversiones');
+
+  // Desglose por subcuenta para Bancos e Inversiones
+  function desgloseHTML(cuenta) {
+    const mapa = saldoPorSubcuenta(cuenta);
+    const entradas = Object.entries(mapa).filter(([k,v])=>v!==0).sort((a,b)=>b[1]-a[1]);
+    if (!entradas.length) return '';
+    return entradas.map(([k,v])=>
+      `<div class="reporte-sub">
+        <span>${k}</span>
+        <span style="font-weight:600;color:${v<0?'#A32D2D':'#555'};">${v<0?'-':''}${fmt(v)}</span>
+      </div>`
+    ).join('');
+  }
+
+  const porCat={};
+  movs.filter(m=>m.tipo==='gasto').forEach(m=>{
+    if (!porCat[m.catId]) porCat[m.catId]={total:0,emoji:m.catEmoji,nombre:m.catNombre};
+    porCat[m.catId].total+=m.monto;
+  });
+  const catsSorted=Object.values(porCat).sort((a,b)=>b.total-a.total);
+  const maxGasto=catsSorted[0]?.total||1;
+
+  const recomendaciones=[];
+  if (ingresos>0&&gastos/ingresos>1) recomendaciones.push('⚠ Gastas más de lo que ingresas. Revisa los rubros más altos.');
+  if (porCat['alimentos']&&gastos>0&&porCat['alimentos'].total/gastos>0.35) recomendaciones.push('🍔 Alimentación supera el 35% de gastos.');
+  if (!porCat['ahorro']&&ingresos>0) recomendaciones.push('💰 No hay ahorro registrado este mes. Intenta apartar al menos el 10%.');
+  if (porCat['deudas']&&gastos>0&&porCat['deudas'].total/gastos>0.3) recomendaciones.push('💳 Deudas superan el 30% de gastos. Prioriza liquidarlas.');
+  if (!recomendaciones.length) recomendaciones.push('✅ Tus finanzas se ven saludables este mes. ¡Sigue así!');
+
+  if (!movs.length&&!patrimonios.length){document.getElementById('reporte-content').innerHTML='<p class="empty">Sin datos para generar reporte</p>';return;}
+
+  document.getElementById('reporte-content').innerHTML=`
+    <div class="reporte-card">
+      <div class="reporte-titulo">Saldo por cuenta</div>
+      ${Object.entries(CUENTAS).map(([id,c])=>{
+        const s=saldoPorCuenta(id);
+        const desglose=desgloseHTML(id);
+        return `<div class="reporte-row" style="${desglose?'flex-direction:column;align-items:stretch;':''}">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span>${c.emoji} ${c.nombre}</span>
+            <span style="font-weight:700;color:${s<0?'#A32D2D':'#1A4DB5'};">${s<0?'-':''}${fmt(s)}</span>
+          </div>
+          ${desglose}
+        </div>`;
+      }).join('')}
+      <div class="reporte-row" style="font-weight:700;">
+        <span>Total general</span>
+        <span style="color:${saldoTotal<0?'#A32D2D':'#3B6D11'};">${saldoTotal<0?'-':''}${fmt(saldoTotal)}</span>
+      </div>
+    </div>
+
+    <div class="reporte-card">
+      <div class="reporte-titulo">Flujo del mes</div>
+      ${patTotal>0?`<div class="reporte-row"><span>🏛 Saldo inicial</span><span style="color:#1A4DB5;font-weight:600;">${fmt(patTotal)}</span></div>`:''}
+      <div class="reporte-row"><span>📈 Ingresos</span><span style="color:#3B6D11;font-weight:600;">+${fmt(ingresos)}</span></div>
+      <div class="reporte-row"><span>📉 Gastos</span><span style="color:#A32D2D;font-weight:600;">-${fmt(gastos)}</span></div>
+      <div class="reporte-row" style="font-weight:700;"><span>Balance neto</span><span style="color:${(ingresos-gastos)>=0?'#3B6D11':'#A32D2D'};">${ingresos-gastos>=0?'+':'-'}${fmt(ingresos-gastos)}</span></div>
+    </div>
+
+    ${catsSorted.length?`
+    <div class="reporte-card">
+      <div class="reporte-titulo">Gastos por categoría</div>
+      ${catsSorted.map(c=>`
+        <div class="reporte-row" style="flex-direction:column;align-items:stretch;gap:4px;padding:8px 0;">
+          <div style="display:flex;justify-content:space-between;font-size:14px;">
+            <span>${c.emoji} ${c.nombre}</span><span style="font-weight:600;">${fmt(c.total)}</span>
+          </div>
+          <div class="reporte-barra-wrap"><div class="reporte-barra" style="width:${Math.round(c.total/maxGasto*100)}%"></div></div>
+        </div>`).join('')}
+      <div style="margin-top:6px;font-size:12px;color:#888;">Mayor gasto: ${catsSorted[0].emoji} ${catsSorted[0].nombre}</div>
+    </div>`:''}
+
+    <div class="reporte-card">
+      <div class="reporte-titulo">Recomendaciones</div>
+      ${recomendaciones.map(r=>`<div class="recomendacion">${r}</div>`).join('')}
+    </div>`;
+}
+
+function mostrarToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+renderInicio();
+</script>
+</body>
+</html>

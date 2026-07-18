@@ -1,0 +1,17 @@
+{
+  "name": "Mis Finanzas Personales",
+  "short_name": "Finanzas",
+  "description": "Control personal de ingresos, gastos y patrimonio",
+  "start_url": "/mis_finazas_personales/",
+  "display": "standalone",
+  "background_color": "#f5f5f0",
+  "theme_color": "#1a1a1a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/Mosquin666/mis_finazas_personales/main/icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}

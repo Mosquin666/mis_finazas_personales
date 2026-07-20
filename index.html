@@ -720,6 +720,10 @@ function mostrarToast(msg){
 }
 
 renderInicio();
+// Registrar Service Worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/mis_finazas_personales/sw.js');
+}
 </script>
 </body>
 </html>

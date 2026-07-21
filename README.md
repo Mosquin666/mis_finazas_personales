@@ -52,6 +52,7 @@ Los datos se persisten con `localStorage` del navegador.
 ├── index.html       # App completa
 ├── manifest.json    # Configuración PWA
 ├── icon.png         # Ícono de la app
+├── sw.js            # Service Worker
 └── README.md        # Este archivo
 ```
 

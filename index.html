@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="Mis Finanzas Personales" />
-  <meta name="theme-color" content="#1a1a1a" />
+  <meta name="apple-mobile-web-app-title" content="Mi Contador" />
+  <meta name="theme-color" content="#ffffff" />
   <link rel="manifest" href="/mis_finazas_personales/manifest.json" />
   <title>Mis Finanzas Personales</title>
   <style>
@@ -116,6 +116,19 @@
     @media (prefers-color-scheme: dark) {
       .modal-box { background:#2a2a2a; }
       .modal-box input, .modal-box select, .modal-box textarea { background:#2a2a2a; border-color:#3a3a3a; color:#f0ede4; }
+    }
+    .filtro-panel { background: #fff; border: 0.5px solid #e0ddd4; border-radius: 12px; padding: 14px; margin-bottom: 12px; display:none; }
+    .filtro-panel label { font-size: 12px; color: #888; display: block; margin-bottom: 4px; margin-top: 10px; }
+    .filtro-panel label:first-of-type { margin-top: 0; }
+    .filtro-panel input, .filtro-panel select { width: 100%; padding: 9px 12px; border: 0.5px solid #ccc; border-radius: 8px; font-size: 14px; background: #fff; color: #1a1a1a; font-family: inherit; }
+    .filtro-panel input:focus, .filtro-panel select:focus { outline: none; border-color: #888; }
+    .filtro-resumen { background: #f5f5f0; border-radius: 10px; padding: 10px 14px; margin-bottom: 12px; display:none; font-size: 13px; }
+    .filtro-resumen-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
+    .filtro-activo { background: #1a1a1a; color: #fff; }
+    @media (prefers-color-scheme: dark) {
+      .filtro-panel { background: #2a2a2a; border-color: #3a3a3a; }
+      .filtro-panel input, .filtro-panel select { background: #2a2a2a; border-color: #3a3a3a; color: #f0ede4; }
+      .filtro-resumen { background: #222; color: #f0ede4; }
     }
     .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1a1a1a; color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 13px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 99; white-space: nowrap; max-width: 90vw; }
     .toast.show { opacity: 1; }
@@ -230,10 +243,50 @@
 
   <!-- MOVIMIENTOS -->
   <div id="sec-movimientos" class="section">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
       <span class="section-label" style="margin:0;">Historial</span>
-      <span class="badge-movs" id="badge-movs">0 movimientos</span>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <span class="badge-movs" id="badge-movs">0 movimientos</span>
+        <button id="btn-filtrar" class="btn-edit" style="padding:4px 10px;font-size:12px;border-radius:20px;" onclick="toggleFiltro()">⚙ Filtrar</button>
+      </div>
     </div>
+
+    <div id="filtro-panel" class="filtro-panel">
+      <label>Tipo</label>
+      <select id="f-tipo">
+        <option value="">Todos</option>
+        <option value="ingreso">Solo ingresos</option>
+        <option value="gasto">Solo gastos</option>
+        <option value="patrimonio">Solo saldos iniciales</option>
+      </select>
+      <label>Categoría</label>
+      <select id="f-cat">
+        <option value="">Todas las categorías</option>
+      </select>
+      <label>Cuenta</label>
+      <select id="f-cuenta">
+        <option value="">Todas las cuentas</option>
+        <option value="disponible">💵 Disponible</option>
+        <option value="bancos">🏦 Bancos</option>
+        <option value="inversiones">🪙 Inversiones</option>
+      </select>
+      <label>Desde</label>
+      <input type="date" id="f-desde" />
+      <label>Hasta</label>
+      <input type="date" id="f-hasta" />
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button class="btn-save ingreso" style="font-size:13px;padding:9px;" onclick="aplicarFiltro()">Aplicar filtro</button>
+        <button class="btn-cancel-f" style="font-size:13px;padding:9px;" onclick="quitarFiltro()">Quitar filtro</button>
+      </div>
+    </div>
+
+    <div id="filtro-resumen" class="filtro-resumen">
+      <div class="filtro-resumen-row"><span>🔍 Resultados filtrados</span><span id="f-count" style="font-weight:600;"></span></div>
+      <div class="filtro-resumen-row"><span>📈 Total ingresos</span><span id="f-ing" style="color:#3B6D11;font-weight:600;"></span></div>
+      <div class="filtro-resumen-row"><span>📉 Total gastos</span><span id="f-gas" style="color:#A32D2D;font-weight:600;"></span></div>
+      <div class="filtro-resumen-row" style="margin-top:4px;padding-top:4px;border-top:0.5px solid #ddd;"><span style="font-weight:600;">Balance</span><span id="f-bal" style="font-weight:700;"></span></div>
+    </div>
+
     <div id="lista-movimientos"><p class="empty">Sin movimientos este mes</p></div>
   </div>
 
@@ -581,16 +634,98 @@ function renderInicio() {
   ).join('');
 }
 
+let filtroActivo = null;
+
+function toggleFiltro() {
+  const panel = document.getElementById('filtro-panel');
+  const btn = document.getElementById('btn-filtrar');
+  const visible = panel.style.display === 'block';
+  panel.style.display = visible ? 'none' : 'block';
+  if (!visible) {
+    // Llenar categorías en el select
+    const sel = document.getElementById('f-cat');
+    sel.innerHTML = '<option value="">Todas las categorías</option>'
+      + categorias.map(c=>`<option value="${c.id}">${c.emoji} ${c.nombre}</option>`).join('');
+    if (filtroActivo?.cat) sel.value = filtroActivo.cat;
+    if (filtroActivo?.tipo) document.getElementById('f-tipo').value = filtroActivo.tipo;
+    if (filtroActivo?.cuenta) document.getElementById('f-cuenta').value = filtroActivo.cuenta;
+    if (filtroActivo?.desde) document.getElementById('f-desde').value = filtroActivo.desde;
+    if (filtroActivo?.hasta) document.getElementById('f-hasta').value = filtroActivo.hasta;
+  }
+}
+
+function aplicarFiltro() {
+  const tipo   = document.getElementById('f-tipo').value;
+  const cat    = document.getElementById('f-cat').value;
+  const cuenta = document.getElementById('f-cuenta').value;
+  const desde  = document.getElementById('f-desde').value;
+  const hasta  = document.getElementById('f-hasta').value;
+  filtroActivo = { tipo, cat, cuenta, desde, hasta };
+  document.getElementById('filtro-panel').style.display = 'none';
+  document.getElementById('btn-filtrar').classList.add('filtro-activo');
+  renderMovimientos();
+}
+
+function quitarFiltro() {
+  filtroActivo = null;
+  document.getElementById('filtro-panel').style.display = 'none';
+  document.getElementById('btn-filtrar').classList.remove('filtro-activo');
+  document.getElementById('filtro-resumen').style.display = 'none';
+  ['f-tipo','f-cat','f-cuenta','f-desde','f-hasta'].forEach(id => document.getElementById(id).value = '');
+  renderMovimientos();
+}
+
+function cumpleFiltro(m) {
+  if (!filtroActivo) return true;
+  const { tipo, cat, cuenta, desde, hasta } = filtroActivo;
+  const fechaMov = m.fecha.split('T')[0];
+  if (tipo) {
+    if (tipo === 'patrimonio' && !m._esPat) return false;
+    if (tipo !== 'patrimonio' && m._esPat) return false;
+    if (tipo !== 'patrimonio' && m.tipo !== tipo) return false;
+  }
+  if (cat && !m._esPat && m.catId !== cat) return false;
+  if (cuenta && m.cuenta !== cuenta && m.tipo !== cuenta) return false;
+  if (desde && fechaMov < desde) return false;
+  if (hasta && fechaMov > hasta) return false;
+  return true;
+}
+
 function renderMovimientos() {
-  const movs=movsDelMes();
-  const todos=[
+  const movs = filtroActivo
+    ? movimientos  // Si hay filtro, busca en todos los movimientos, no solo del mes
+    : movsDelMes();
+
+  const todosBase = [
     ...patrimonios.map(p=>({...p,_esPat:true})),
     ...movs
   ].sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
 
-  document.getElementById('badge-movs').textContent=movs.length+' movimiento'+(movs.length!==1?'s':'');
+  const todos = filtroActivo ? todosBase.filter(cumpleFiltro) : todosBase;
+
+  // Badge principal siempre muestra el mes actual
+  const movsMes = movsDelMes();
+  document.getElementById('badge-movs').textContent = movsMes.length+' movimiento'+(movsMes.length!==1?'s':'');
+
+  // Resumen de filtro
+  const resumenEl = document.getElementById('filtro-resumen');
+  if (filtroActivo) {
+    const soloMovs = todos.filter(m=>!m._esPat);
+    const ing = soloMovs.filter(m=>m.tipo==='ingreso').reduce((s,m)=>s+m.monto,0);
+    const gas = soloMovs.filter(m=>m.tipo==='gasto').reduce((s,m)=>s+m.monto,0);
+    const bal = ing - gas;
+    document.getElementById('f-count').textContent = todos.length+' resultado'+(todos.length!==1?'s':'');
+    document.getElementById('f-ing').textContent = '+'+fmt(ing);
+    document.getElementById('f-gas').textContent = '-'+fmt(gas);
+    document.getElementById('f-bal').textContent = (bal>=0?'+':'-')+fmt(bal);
+    document.getElementById('f-bal').style.color = bal>=0?'#3B6D11':'#A32D2D';
+    resumenEl.style.display = 'block';
+  } else {
+    resumenEl.style.display = 'none';
+  }
+
   const lista=document.getElementById('lista-movimientos');
-  if (!todos.length){lista.innerHTML='<p class="empty">Sin movimientos este mes</p>';return;}
+  if (!todos.length){lista.innerHTML='<p class="empty">'+(filtroActivo?'Sin resultados para ese filtro':'Sin movimientos este mes')+'</p>';return;}
 
   lista.innerHTML=todos.map(m=>{
     if (m._esPat) {
